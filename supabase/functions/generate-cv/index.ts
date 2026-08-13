@@ -105,6 +105,7 @@ Deno.serve(async (req: Request) => {
     const cvData = {
       personal: {
         name,
+        role: target_role,
         email: "",
         phone: "",
         location: "",

@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Download, Loader as Loader2, Check, Plus, X, Sparkles, Eye, Pencil } from 'lucide-react';
+import { pdf } from '@react-pdf/renderer';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import CVPreview, { type CVPreviewData } from '@/components/CVPreview';
+import { CvPdfDocument } from '@/components/CvPdfDocument';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import TagInput from '@/components/TagInput';
 
@@ -27,7 +29,7 @@ interface CvRow {
 function buildInitialData(row: CvRow): CVPreviewData {
   if (row.cv_data) {
     return {
-      personal: row.cv_data.personal ?? { name: '', email: '', phone: '', location: '', linkedin: '' },
+      personal: row.cv_data.personal ?? { name: '', role: '', email: '', phone: '', location: '', linkedin: '' },
       summary: row.cv_data.summary ?? '',
       experience: row.cv_data.experience ?? [],
       education: row.cv_data.education ?? [],
@@ -90,6 +92,7 @@ function buildInitialData(row: CvRow): CVPreviewData {
   return {
     personal: {
       name: row.name ?? '',
+      role: row.target_role ?? '',
       email: '',
       phone: '',
       location: '',
@@ -118,6 +121,7 @@ export default function CVEditorPage() {
   const [mobileTab, setMobileTab] = useState<'preview' | 'edit'>('edit');
   const [rewritingSummary, setRewritingSummary] = useState(false);
   const [rewritingBullets, setRewritingBullets] = useState<number | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const dataRef = useRef<CVPreviewData | null>(null);
   const titleRef = useRef('');
@@ -269,6 +273,26 @@ export default function CVEditorPage() {
     if (dataRef.current) save(dataRef.current, titleRef.current);
   };
 
+  const handleDownloadPdf = async () => {
+    if (!cvData) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await pdf(<CvPdfDocument cvData={cvData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(cvData.personal.name || 'CV').replace(/\s+/g, '_')}_CV.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore for now
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   // --- Loading / error states ---
 
   if (loading) {
@@ -350,8 +374,12 @@ export default function CVEditorPage() {
               <Check className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Save</span>
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-              <Download className="h-3.5 w-3.5" />
+            <button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {downloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">PDF</span>
             </button>
           </div>
@@ -409,6 +437,15 @@ export default function CVEditorPage() {
                     className={inputClass}
                     value={cvData.personal.name ?? ''}
                     onChange={(e) => update((p) => ({ ...p, personal: { ...p.personal, name: e.target.value } }))}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>Role / Title</label>
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. Frontend Developer"
+                    value={cvData.personal.role ?? ''}
+                    onChange={(e) => update((p) => ({ ...p, personal: { ...p.personal, role: e.target.value } }))}
                   />
                 </div>
                 <div>

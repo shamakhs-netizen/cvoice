@@ -13,6 +13,7 @@ import {
 export interface CVPreviewData {
   personal: {
     name?: string | null;
+    role?: string | null;
     email?: string | null;
     phone?: string | null;
     location?: string | null;
@@ -102,6 +103,11 @@ export default function CVPreview({ cvData }: { cvData: CVPreviewData }) {
             <h1 className="text-[24px] font-bold text-gray-900 leading-tight tracking-tight">
               {personal.name || 'Your Name'}
             </h1>
+            {personal.role && (
+              <p className="mt-1 text-[14px] font-medium text-gray-600">
+                {personal.role}
+              </p>
+            )}
             {contactItems.length > 0 && (
               <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-gray-500">
                 {contactItems.map((item, i) => (
@@ -113,6 +119,8 @@ export default function CVPreview({ cvData }: { cvData: CVPreviewData }) {
               </div>
             )}
           </header>
+
+          <div className="mt-5 h-px bg-gray-200" />
 
           {/* Professional Summary */}
           {summary && summary.trim() && (
